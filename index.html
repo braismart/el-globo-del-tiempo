@@ -1,0 +1,1505 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>El Globo del Tiempo · IES San Bartolomé</title>
+<style>
+/* ============================================================
+   RESET & BASE
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --font-main: Georgia, 'Times New Roman', serif;
+  --font-ui: 'Segoe UI', Arial, sans-serif;
+  --transition: 0.4s ease;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font-main);
+  background: #0d0d1a;
+  color: #f0e6d3;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ============================================================
+   PORTADA
+   ============================================================ */
+#portada {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  background: radial-gradient(ellipse at center, #1a1a4e 0%, #0d0d1a 70%);
+  position: relative;
+  overflow: hidden;
+  padding: 2rem;
+}
+
+.stars {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.star {
+  position: absolute;
+  background: white;
+  border-radius: 50%;
+  animation: twinkle var(--d, 3s) ease-in-out infinite alternate;
+}
+@keyframes twinkle {
+  from { opacity: 0.2; transform: scale(1); }
+  to   { opacity: 1;   transform: scale(1.4); }
+}
+
+.globe-container {
+  font-size: 7rem;
+  animation: float 4s ease-in-out infinite;
+  filter: drop-shadow(0 0 30px rgba(100,180,255,0.8));
+  margin-bottom: 1.5rem;
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-18px); }
+}
+
+#portada h1 {
+  font-size: clamp(2rem, 6vw, 4rem);
+  color: #ffd700;
+  text-shadow: 0 0 20px rgba(255,215,0,0.6);
+  letter-spacing: 0.05em;
+  line-height: 1.1;
+  margin-bottom: 0.5rem;
+}
+#portada .subtitle {
+  font-size: clamp(1rem, 2.5vw, 1.4rem);
+  color: #aed6f1;
+  margin-bottom: 0.3rem;
+  font-style: italic;
+}
+#portada .school-tag {
+  font-size: 0.9rem;
+  color: #7fb3d3;
+  margin-bottom: 2.5rem;
+  font-family: var(--font-ui);
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+}
+
+.btn-start {
+  background: linear-gradient(135deg, #ffd700, #ff8c00);
+  color: #1a1a1a;
+  border: none;
+  padding: 1rem 2.5rem;
+  font-size: 1.2rem;
+  font-family: var(--font-main);
+  font-weight: bold;
+  border-radius: 50px;
+  cursor: pointer;
+  box-shadow: 0 0 25px rgba(255,215,0,0.5);
+  transition: transform 0.2s, box-shadow 0.2s;
+  letter-spacing: 0.05em;
+}
+.btn-start:hover {
+  transform: scale(1.06);
+  box-shadow: 0 0 40px rgba(255,215,0,0.8);
+}
+
+.warning-text {
+  margin-top: 2rem;
+  font-size: 0.8rem;
+  color: #7f8c8d;
+  font-family: var(--font-ui);
+  font-style: italic;
+}
+
+/* ============================================================
+   BARRA DE PROGRESO Y NAVEGACIÓN
+   ============================================================ */
+#nav-bar {
+  display: none;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(13,13,26,0.95);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(255,215,0,0.3);
+  padding: 0.6rem 1rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+#nav-bar.visible { display: flex; }
+
+.nav-chapters {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+.nav-btn {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.2);
+  color: rgba(255,255,255,0.5);
+  padding: 0.3rem 0.7rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-family: var(--font-ui);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.nav-btn:hover { border-color: #ffd700; color: #ffd700; }
+.nav-btn.active { background: #ffd700; color: #1a1a1a; border-color: #ffd700; font-weight: bold; }
+
+#inventory-bar {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  font-size: 0.75rem;
+  font-family: var(--font-ui);
+  color: #aed6f1;
+}
+.inv-item {
+  font-size: 1.3rem;
+  opacity: 0.3;
+  transition: opacity 0.5s, transform 0.3s;
+  cursor: help;
+  position: relative;
+}
+.inv-item.collected {
+  opacity: 1;
+  animation: pop 0.4s ease;
+}
+@keyframes pop {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.5); }
+  100% { transform: scale(1); }
+}
+.inv-item[data-tooltip]:hover::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 130%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1a1a2e;
+  border: 1px solid #ffd700;
+  padding: 0.3rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  white-space: nowrap;
+  color: #f0e6d3;
+  pointer-events: none;
+  z-index: 200;
+}
+
+/* ============================================================
+   CHAPTERS — CONTENEDOR
+   ============================================================ */
+.chapter { display: none; min-height: 100vh; }
+.chapter.active { display: block; }
+
+/* ============================================================
+   CAPÍTULO 0 — EL DEPARTAMENTO
+   ============================================================ */
+.ch-depto {
+  background: linear-gradient(180deg, #1c1c2e 0%, #2c2c3e 100%);
+}
+
+/* ============================================================
+   CAPÍTULO 1 — ATENAS
+   ============================================================ */
+.ch-athens {
+  background: linear-gradient(180deg, #1a3a5c 0%, #0d2137 100%);
+}
+
+/* ============================================================
+   CAPÍTULO 2 — ESPARTA
+   ============================================================ */
+.ch-sparta {
+  background: linear-gradient(180deg, #3b0a0a 0%, #1a0404 100%);
+}
+
+/* ============================================================
+   CAPÍTULO 3 — ROMA
+   ============================================================ */
+.ch-rome {
+  background: linear-gradient(180deg, #2e1a00 0%, #1a0f00 100%);
+}
+
+/* ============================================================
+   CAPÍTULO 4 — LOBOS
+   ============================================================ */
+.ch-lobos {
+  background: linear-gradient(180deg, #003333 0%, #001a1a 100%);
+}
+
+/* ============================================================
+   CAPÍTULO 5 — REGRESO
+   ============================================================ */
+.ch-return {
+  background: linear-gradient(180deg, #1c1c2e 0%, #2c2c3e 100%);
+}
+
+/* ============================================================
+   CHAPTER HEADER
+   ============================================================ */
+.ch-header {
+  padding: 4rem 2rem 2rem;
+  text-align: center;
+  position: relative;
+}
+.ch-icon { font-size: 4.5rem; display: block; margin-bottom: 1rem;
+  animation: float 5s ease-in-out infinite; }
+.ch-number {
+  font-family: var(--font-ui);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  opacity: 0.6;
+  margin-bottom: 0.5rem;
+}
+.ch-title {
+  font-size: clamp(1.8rem, 5vw, 3rem);
+  font-weight: bold;
+  line-height: 1.1;
+  margin-bottom: 0.5rem;
+}
+.ch-subtitle {
+  font-size: 1rem;
+  font-style: italic;
+  opacity: 0.7;
+  margin-bottom: 2rem;
+}
+
+/* Athens colors */
+.ch-athens .ch-title { color: #aed6f1; text-shadow: 0 0 20px rgba(174,214,241,0.4); }
+.ch-athens .ch-number { color: #7fb3d3; }
+
+/* Sparta colors */
+.ch-sparta .ch-title { color: #e74c3c; text-shadow: 0 0 20px rgba(231,76,60,0.4); }
+.ch-sparta .ch-number { color: #c0392b; }
+
+/* Rome colors */
+.ch-rome .ch-title { color: #ffd700; text-shadow: 0 0 20px rgba(255,215,0,0.4); }
+.ch-rome .ch-number { color: #e67e22; }
+
+/* Lobos colors */
+.ch-lobos .ch-title { color: #1abc9c; text-shadow: 0 0 20px rgba(26,188,156,0.4); }
+.ch-lobos .ch-number { color: #16a085; }
+
+/* Depto / Return colors */
+.ch-depto .ch-title, .ch-return .ch-title { color: #f0e6d3; text-shadow: 0 0 15px rgba(240,230,211,0.3); }
+
+/* ============================================================
+   CONTENT AREA
+   ============================================================ */
+.ch-content {
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 0 1.5rem 4rem;
+}
+
+.narrative {
+  font-size: 1.1rem;
+  line-height: 1.85;
+  margin-bottom: 1.5rem;
+  color: #e8dcc8;
+}
+.narrative + .narrative { margin-top: -0.5rem; }
+
+/* ============================================================
+   DIALOGUE BUBBLES
+   ============================================================ */
+.dialogue-block {
+  margin: 2rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.bubble {
+  max-width: 85%;
+  padding: 1rem 1.3rem;
+  border-radius: 18px;
+  font-size: 1rem;
+  line-height: 1.6;
+  position: relative;
+}
+.bubble .speaker {
+  font-family: var(--font-ui);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 0.3rem;
+  opacity: 0.7;
+}
+.bubble-left {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 18px 18px 18px 4px;
+  align-self: flex-start;
+}
+.bubble-right {
+  background: rgba(255,215,0,0.1);
+  border: 1px solid rgba(255,215,0,0.25);
+  border-radius: 18px 18px 4px 18px;
+  align-self: flex-end;
+  text-align: right;
+}
+.bubble-right .speaker { text-align: right; }
+
+/* Athens dialogue */
+.ch-athens .bubble-left { background: rgba(174,214,241,0.1); border-color: rgba(174,214,241,0.25); }
+/* Sparta dialogue */
+.ch-sparta .bubble-left { background: rgba(231,76,60,0.1); border-color: rgba(231,76,60,0.25); }
+/* Rome dialogue */
+.ch-rome .bubble-left { background: rgba(255,215,0,0.08); border-color: rgba(255,215,0,0.2); }
+/* Lobos dialogue */
+.ch-lobos .bubble-left { background: rgba(26,188,156,0.1); border-color: rgba(26,188,156,0.25); }
+
+/* ============================================================
+   INFO BOXES (PERGAMINOS / TABLILLAS)
+   ============================================================ */
+.scroll-box {
+  background: rgba(205,170,120,0.08);
+  border: 1px solid rgba(205,170,120,0.35);
+  border-radius: 12px;
+  padding: 1.3rem 1.5rem;
+  margin: 2rem 0;
+  position: relative;
+}
+.scroll-box::before {
+  content: attr(data-icon);
+  position: absolute;
+  top: -0.9rem;
+  left: 1rem;
+  background: #1a1a2e;
+  padding: 0 0.5rem;
+  font-size: 1.2rem;
+}
+.scroll-box h4 {
+  font-size: 0.85rem;
+  font-family: var(--font-ui);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #cd8a30;
+  margin-bottom: 0.6rem;
+}
+.scroll-box p, .scroll-box li {
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: #d4c5a9;
+}
+.scroll-box ul { list-style: none; padding: 0; }
+.scroll-box ul li::before { content: "→ "; color: #cd8a30; }
+
+/* Colored scroll boxes per chapter */
+.ch-athens .scroll-box { border-color: rgba(174,214,241,0.35); }
+.ch-athens .scroll-box::before { background: #1a3a5c; }
+.ch-athens .scroll-box h4 { color: #7fb3d3; }
+.ch-athens .scroll-box ul li::before { color: #7fb3d3; }
+
+.ch-sparta .scroll-box { border-color: rgba(231,76,60,0.35); }
+.ch-sparta .scroll-box::before { background: #3b0a0a; }
+.ch-sparta .scroll-box h4 { color: #e74c3c; }
+.ch-sparta .scroll-box ul li::before { color: #e74c3c; }
+
+.ch-rome .scroll-box { border-color: rgba(255,215,0,0.3); }
+.ch-rome .scroll-box::before { background: #2e1a00; }
+.ch-rome .scroll-box h4 { color: #ffd700; }
+.ch-rome .scroll-box ul li::before { color: #ffd700; }
+
+.ch-lobos .scroll-box { border-color: rgba(26,188,156,0.35); }
+.ch-lobos .scroll-box::before { background: #003333; }
+.ch-lobos .scroll-box h4 { color: #1abc9c; }
+.ch-lobos .scroll-box ul li::before { color: #1abc9c; }
+
+/* ============================================================
+   GLOSSARY TERMS
+   ============================================================ */
+.g {
+  border-bottom: 2px dotted rgba(255,215,0,0.6);
+  color: #ffd700;
+  cursor: help;
+  position: relative;
+  font-style: italic;
+}
+.g::after {
+  content: attr(data-def);
+  display: none;
+  position: absolute;
+  bottom: 130%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1a1a2e;
+  border: 1px solid #ffd700;
+  padding: 0.5rem 0.8rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-style: normal;
+  width: 220px;
+  text-align: center;
+  color: #f0e6d3;
+  z-index: 300;
+  pointer-events: none;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+  line-height: 1.4;
+}
+.g:hover::after { display: block; }
+
+/* ============================================================
+   ALERT / WARNING BOXES
+   ============================================================ */
+.alert-box {
+  border-radius: 10px;
+  padding: 1rem 1.3rem;
+  margin: 1.5rem 0;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  border-left: 4px solid;
+}
+.alert-danger {
+  background: rgba(231,76,60,0.1);
+  border-color: #e74c3c;
+  color: #f5b7b1;
+}
+.alert-info {
+  background: rgba(52,152,219,0.1);
+  border-color: #3498db;
+  color: #aed6f1;
+}
+.alert-funny {
+  background: rgba(241,196,15,0.1);
+  border-color: #f1c40f;
+  color: #f9e79f;
+}
+.alert-smelly {
+  background: rgba(26,188,156,0.1);
+  border-color: #1abc9c;
+  color: #a2d9ce;
+}
+
+/* ============================================================
+   MAP DISPLAY
+   ============================================================ */
+.map-display {
+  background: rgba(0,0,0,0.3);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  padding: 1.5rem;
+  text-align: center;
+  margin: 2rem 0;
+  font-size: 2rem;
+  letter-spacing: 0.3rem;
+}
+.map-display p {
+  font-size: 0.8rem;
+  font-family: var(--font-ui);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0.6;
+  margin-top: 0.5rem;
+  color: #aed6f1;
+}
+
+/* ============================================================
+   SEPARATOR
+   ============================================================ */
+.sep {
+  text-align: center;
+  font-size: 1.5rem;
+  margin: 2rem 0;
+  opacity: 0.4;
+  letter-spacing: 0.5rem;
+}
+
+/* ============================================================
+   TELEPORT EFFECT
+   ============================================================ */
+.teleport-box {
+  background: linear-gradient(135deg, rgba(100,0,200,0.2), rgba(0,100,255,0.2));
+  border: 2px solid rgba(150,50,255,0.5);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin: 2.5rem 0;
+  text-align: center;
+  animation: pulse-teleport 2s ease-in-out infinite;
+}
+@keyframes pulse-teleport {
+  0%, 100% { box-shadow: 0 0 15px rgba(100,0,200,0.3); }
+  50%       { box-shadow: 0 0 35px rgba(100,0,200,0.7); }
+}
+.teleport-box .t-icon { font-size: 2.5rem; display: block; margin-bottom: 0.5rem; }
+.teleport-box p { font-size: 0.9rem; opacity: 0.8; line-height: 1.6; }
+
+/* ============================================================
+   CHAPTER NAVIGATION BUTTONS
+   ============================================================ */
+.ch-nav {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin-top: 3rem;
+  flex-wrap: wrap;
+}
+.btn-nav {
+  padding: 0.8rem 1.8rem;
+  border-radius: 50px;
+  font-family: var(--font-main);
+  font-size: 1rem;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  border: none;
+}
+.btn-nav:hover { transform: scale(1.05); }
+
+.btn-next-depto  { background: linear-gradient(135deg,#667eea,#764ba2); color:#fff; box-shadow: 0 4px 15px rgba(102,126,234,0.4); }
+.btn-next-athens { background: linear-gradient(135deg,#1a6b9a,#0d3d5c); color:#aed6f1; box-shadow: 0 4px 15px rgba(26,107,154,0.5); border: 1px solid #2980b9; }
+.btn-next-sparta { background: linear-gradient(135deg,#8b0000,#4a0000); color:#f5b7b1; box-shadow: 0 4px 15px rgba(139,0,0,0.5); border: 1px solid #c0392b; }
+.btn-next-rome   { background: linear-gradient(135deg,#8b6914,#4a3500); color:#ffd700; box-shadow: 0 4px 15px rgba(139,105,20,0.5); border: 1px solid #d4a017; }
+.btn-next-lobos  { background: linear-gradient(135deg,#0e5e4e,#062e26); color:#1abc9c; box-shadow: 0 4px 15px rgba(14,94,78,0.5); border: 1px solid #1abc9c; }
+.btn-next-return { background: linear-gradient(135deg,#ffd700,#ff8c00); color:#1a1a1a; box-shadow: 0 4px 15px rgba(255,215,0,0.5); font-weight:bold; }
+
+/* ============================================================
+   COLLECT ITEM BUTTON
+   ============================================================ */
+.btn-collect {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255,215,0,0.1);
+  border: 1px solid rgba(255,215,0,0.4);
+  color: #ffd700;
+  padding: 0.5rem 1.2rem;
+  border-radius: 50px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: var(--font-main);
+  margin: 0.5rem 0;
+}
+.btn-collect:hover { background: rgba(255,215,0,0.2); transform: scale(1.04); }
+.btn-collect.done { opacity: 0.5; cursor: default; transform: none; }
+
+/* ============================================================
+   XYLOSPONGIUM SPECIAL
+   ============================================================ */
+.xylo-box {
+  background: linear-gradient(135deg, rgba(139,69,19,0.2), rgba(101,67,33,0.2));
+  border: 2px dashed rgba(205,133,63,0.6);
+  border-radius: 12px;
+  padding: 1.3rem 1.5rem;
+  margin: 2rem 0;
+  position: relative;
+}
+.xylo-box::before {
+  content: "🧽 OBJETO HISTÓRICO LEGENDARIO 🧽";
+  display: block;
+  font-family: var(--font-ui);
+  font-size: 0.7rem;
+  letter-spacing: 0.15em;
+  color: #cd853f;
+  margin-bottom: 0.6rem;
+  text-transform: uppercase;
+}
+.xylo-box p { font-size: 0.95rem; line-height: 1.7; color: #d4c5a9; }
+
+/* ============================================================
+   FINAL PAGE
+   ============================================================ */
+.final-card {
+  background: linear-gradient(135deg, rgba(255,215,0,0.05), rgba(255,140,0,0.05));
+  border: 1px solid rgba(255,215,0,0.3);
+  border-radius: 16px;
+  padding: 2rem;
+  margin: 2rem 0;
+  text-align: center;
+}
+.final-card h3 { color: #ffd700; margin-bottom: 1rem; font-size: 1.4rem; }
+.final-card p { font-size: 1rem; line-height: 1.8; color: #e8dcc8; }
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 600px) {
+  .ch-header { padding: 2.5rem 1rem 1rem; }
+  .ch-content { padding: 0 1rem 3rem; }
+  .bubble { max-width: 95%; }
+  .nav-btn { font-size: 0.65rem; padding: 0.25rem 0.5rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     PORTADA
+     ============================================================ -->
+<section id="portada">
+  <div class="stars" id="stars-container"></div>
+  <div class="globe-container">🌍</div>
+  <h1>El Globo del Tiempo</h1>
+  <p class="subtitle">Una novela de Historia para quienes no tenían suficiente</p>
+  <p class="school-tag">IES San Bartolomé · Geografía e Historia 1.º ESO · 2026</p>
+  <button class="btn-start" onclick="startReading()">Abrir el departamento →</button>
+  <p class="warning-text">⚠ Lectura voluntaria. El autor no se responsabiliza de posibles ganas de estudiar Historia.</p>
+</section>
+
+<!-- ============================================================
+     BARRA DE NAVEGACIÓN
+     ============================================================ -->
+<nav id="nav-bar">
+  <div class="nav-chapters">
+    <button class="nav-btn" onclick="goTo('ch0')">0 · Depto.</button>
+    <button class="nav-btn" onclick="goTo('ch1')">I · Atenas</button>
+    <button class="nav-btn" onclick="goTo('ch2')">II · Esparta</button>
+    <button class="nav-btn" onclick="goTo('ch3')">III · Roma</button>
+    <button class="nav-btn" onclick="goTo('ch4')">IV · Lobos</button>
+    <button class="nav-btn" onclick="goTo('ch5')">V · Regreso</button>
+  </div>
+  <div id="inventory-bar">
+    🎒
+    <span class="inv-item" id="inv0" data-tooltip="Ostracon ateniense">🏺</span>
+    <span class="inv-item" id="inv1" data-tooltip="Escudo espartano">🛡️</span>
+    <span class="inv-item" id="inv2" data-tooltip="Moneda romana (denario)">🪙</span>
+    <span class="inv-item" id="inv3" data-tooltip="Ampolla de púrpura de Lobos">🫙</span>
+    <span class="inv-item" id="inv4" data-tooltip="Un xylospongium. No preguntes.">🧽</span>
+  </div>
+</nav>
+
+<!-- ============================================================
+     CAPÍTULO 0 — EL DEPARTAMENTO
+     ============================================================ -->
+<section id="ch0" class="chapter ch-depto">
+  <div class="ch-header">
+    <span class="ch-icon">🚪</span>
+    <p class="ch-number">Prólogo</p>
+    <h2 class="ch-title">El Departamento de Geografía e Historia</h2>
+    <p class="ch-subtitle">IES San Bartolomé, último día de clase, 10:47 de la mañana</p>
+  </div>
+
+  <div class="ch-content">
+    <p class="narrative">
+      Hace calufa. Una calufa ridícula, de esas que solo existen en Lanzarote en junio, el tipo de calufa que hace que el asfalto se ablande y que el profesorado pierda la voluntad de explicar nada. Las notas ya están puestas. Los libros, entregados. Lo único que falta es que el reloj llegue a las dos y todo esto acabe hasta septiembre.
+    </p>
+    <p class="narrative">
+      Pero tú has vuelto.
+    </p>
+    <p class="narrative">
+      No porque quieras, que conste. Es que te has dejado algo. ¿El estuche? ¿La agenda? ¿Las llaves de casa? El caso es que subes por las escaleras mientras el pasillo huele a fregona y a verano inminente, y llegas a la planta donde está el Departamento de Geografía e Historia, esa puerta blanca que siempre está entreabierta y que nunca habías cruzado del todo.
+    </p>
+    <p class="narrative">
+      Hoy, sin embargo, no hay nadie. La puerta cede con un crujido.
+    </p>
+
+    <div class="sep">· · ·</div>
+
+    <p class="narrative">
+      El departamento es exactamente como lo imaginabas y, al mismo tiempo, completamente distinto. Hay una mesa grande en el centro, cubierta de papeles, exámenes sin corregir y al menos seis tazas de café en distintos estados de abandono. Las paredes están tapizadas de mapas: el Imperio Romano, el mundo helénico, la Mesopotamia, la expansión árabe. Hay una pizarra llena de esquemas que nadie ha borrado todavía.
+    </p>
+    <p class="narrative">
+      Y en la estantería del fondo, entre montones de libros de texto y una colección inquietante de cráneos de resina —Lucy, Pepe y otros cuya historia preferirías no conocer—, hay un globo terráqueo.
+    </p>
+    <p class="narrative">
+      No es un globo normal. Es antiguo —de verdad antiguo, no de imitación—, con los meridianos grabados en latón y los continentes pintados a mano con colores que ya no existen en ninguna caja de rotuladores moderna. Gira despacio sobre su eje, aunque no haya nadie cerca que lo haya empujado. En la base tiene una pequeña placa de bronce que dice:
+    </p>
+    <div class="scroll-box" data-icon="🔤">
+      <h4>Inscripción en la base del globo</h4>
+      <p style="text-align:center; font-style:italic; font-size:1.1rem; letter-spacing:0.05em;">
+        <em>«Qui tangit, videt.»</em><br>
+        <span style="font-size:0.85rem; opacity:0.7;">(Quien toca, ve.)</span>
+      </p>
+    </div>
+    <p class="narrative">
+      Debería sonar amenazante. De hecho, suena amenazante. Pero la curiosidad pesa más, siempre pesa más, y cuando extiendes la mano para hacer girar el globo un poco más deprisa, el latón está extrañamente tibio bajo los dedos. Como si llevara encendido mucho tiempo.
+    </p>
+    <p class="narrative">
+      El globo brilla. Una vez. Dos veces. Y luego...
+    </p>
+    <div class="teleport-box">
+      <span class="t-icon">⚡</span>
+      <p>
+        <strong>...el suelo desaparece.</strong><br><br>
+        No caes exactamente. Es más bien como si el mundo que te rodea se deshiciera en partículas de luz azul y el ruido del IES San Bartolomé —sillas moviéndose, la música de la sirena, alguien riéndose en el patio— se alejara a velocidad de vértigo.<br><br>
+        El viento huele a mar. A un mar diferente. A un mar de hace mucho tiempo.
+      </p>
+    </div>
+
+    <div class="ch-nav">
+      <button class="btn-nav btn-next-depto" onclick="goTo('ch1')">
+        🏛️ Aparecer en Atenas →
+      </button>
+    </div>
+  </div>
+</section>
+
+
+<!-- ============================================================
+     CAPÍTULO 1 — ATENAS
+     ============================================================ -->
+<section id="ch1" class="chapter ch-athens">
+  <div class="ch-header">
+    <span class="ch-icon">🏛️</span>
+    <p class="ch-number">Capítulo I</p>
+    <h2 class="ch-title">La Polis Imposible</h2>
+    <p class="ch-subtitle">Atenas, Ática · Siglo V a.e.c. · Época de Pericles</p>
+  </div>
+
+  <div class="ch-content">
+    <div class="map-display">
+      🌊 · 🏔️ · 🏛️ · 🌊 · 🏝️ · 🌊
+      <p>El mundo helénico · Mediterráneo Oriental</p>
+    </div>
+
+    <p class="narrative">
+      Caes de pie —milagrosamente— sobre una superficie de piedra caliza que brilla bajo un sol que no tiene ninguna intención de ponerse. El calor de Lanzarote era broma comparado con esto. El aire huele a aceite de oliva, a especias que no reconoces y, vagamente, a cabra.
+    </p>
+    <p class="narrative">
+      Estás en medio de una plaza enorme, rodeada de columnas, puestos de mercado, gente que discute a gritos y esculturas de mármol tan blancas que hacen daño a la vista. A tu derecha, una colina coronada por un templo que todavía no sabe que dentro de dos mil quinientos años será lo más fotografiado de Europa. Hay construcciones por todas partes: andamios, poleas, bloques de mármol. Están construyendo algo grande.
+    </p>
+
+    <div class="scroll-box" data-icon="📍">
+      <h4>¿Dónde estás?</h4>
+      <p>Estás en el <strong><span class="g" data-def="El Ágora era el corazón de la polis griega: plaza de mercado, centro político y lugar de reunión. Todo el mundo pasaba por aquí.">ágora</span></strong> de Atenas, la plaza central de la <strong><span class="g" data-def="Ciudad-estado griega, unidad política independiente con sus propias leyes e instituciones. Plural: polis.">polis</span></strong>. A tu izquierda, la Acrópolis, donde se construye el <strong>Partenón</strong> (templo de Atenea, diosa de la sabiduría). Año aproximado: 450 a.e.c. Época de <strong>Pericles</strong>.</p>
+    </div>
+
+    <p class="narrative">
+      Un hombre de unos cuarenta años, con túnica de lino y sandalias, se detiene delante de ti y te mira de arriba abajo con la expresión de quien acaba de ver algo completamente normal pero prefiere ignorarlo.
+    </p>
+
+    <div class="dialogue-block">
+      <div class="bubble bubble-left">
+        <p class="speaker">🧔 Demócrito, filósofo del barrio</p>
+        <p>Forastero. Tienes pinta de <span class="g" data-def="Bárbaros: los que no hablaban griego. Para los griegos, todo el que no era griego era un bárbaro, sin que esto fuera necesariamente un insulto… aunque a veces sí lo era.">bárbaro</span>, pero llevas ropas raras. ¿De dónde vienes?</p>
+      </div>
+      <div class="bubble bubble-right">
+        <p class="speaker">🧑 Tú</p>
+        <p>De… un sitio muy al oeste. Muy, muy al oeste. Cerca del Atlántico. Ehm. ¿Qué es ese edificio de ahí arriba?</p>
+      </div>
+      <div class="bubble bubble-left">
+        <p class="speaker">🧔 Demócrito</p>
+        <p>¿Ese? El Partenón. En honor a Atenea Parthenos, la virgen. Lo diseña Fidias, el mejor escultor que ha existido jamás. Los <span class="g" data-def="Ciudadanos con plenos derechos políticos en Atenas: varones, hijos de padre y madre atenienses. Las mujeres, esclavos y extranjeros (metecos) quedaban excluidos.">ciudadanos</span> votamos en la Asamblea para financiar su construcción. La democracia funciona así.</p>
+      </div>
+      <div class="bubble bubble-right">
+        <p class="speaker">🧑 Tú</p>
+        <p>Espera, ¿votáis para construir monumentos? ¿Cómo funciona eso exactamente?</p>
+      </div>
+      <div class="bubble bubble-left">
+        <p class="speaker">🧔 Demócrito</p>
+        <p>¿Que cómo funciona la <span class="g" data-def="Del griego demos (pueblo) + kratos (poder). Gobierno en el que los ciudadanos participan directamente en las decisiones políticas.">democracia</span>? Siéntate. Tengo tiempo.</p>
+      </div>
+    </div>
+
+    <div class="scroll-box" data-icon="🏛️">
+      <h4>La Democracia Ateniense · Siglo V a.e.c.</h4>
+      <ul>
+        <li><strong>Ecclesia (Asamblea):</strong> todos los ciudadanos podían hablar y votar. Se reunían en la colina del Pnyx, hasta 6.000 personas.</li>
+        <li><strong>Boulé (Consejo de los 500):</strong> preparaba los asuntos que debatía la Asamblea. Sus miembros se elegían <em>por sorteo</em>.</li>
+        <li><strong>Magistrados:</strong> cargos ejecutivos, elegidos por votación o sorteo. Cobraban un salario para que los pobres también pudieran ejercer.</li>
+        <li><strong>Ostracismo:</strong> si desconfiabas de alguien, escribías su nombre en un trozo de cerámica (<span class="g" data-def="Trozo de cerámica usado para votar el ostracismo. De aquí viene la palabra 'ostracismo'.">ostracon</span>) y si lo hacían suficientes personas, ese ciudadano era desterrado 10 años sin más proceso.</li>
+      </ul>
+    </div>
+
+    <div class="alert-info">
+      ⚠️ <strong>Ojo:</strong> esta democracia era solo para varones hijos de padre y madre atenienses. Las mujeres, los <span class="g" data-def="Extranjeros residentes en Atenas. Libres, pero sin derechos políticos. Se dedicaban al comercio y la artesanía.">metecos</span> y los esclavos no participaban. No era exactamente lo mismo que votar hoy.
+    </div>
+
+    <div class="sep">· · ·</div>
+
+    <p class="narrative">
+      Demócrito te arrastra, entusiasmado, hasta una reunión en el <strong>Pnyx</strong>, la colina donde se reúne la Ecclesia. Hay cientos de hombres sentados en las gradas de piedra. Un orador habla desde el centro. Demócrito te empuja hacia delante.
+    </p>
+
+    <div class="dialogue-block">
+      <div class="bubble bubble-left">
+        <p class="speaker">🧔 Demócrito</p>
+        <p>¡Habla! ¡Cualquier ciudadano puede proponer lo que quiera! Aquí todos tienen la misma voz.</p>
+      </div>
+      <div class="bubble bubble-right">
+        <p class="speaker">🧑 Tú</p>
+        <p>¡Yo no soy ciudadano! ¡Soy de Lanzarote!</p>
+      </div>
+      <div class="bubble bubble-left">
+        <p class="speaker">🧔 Demócrito</p>
+        <p>¿Fuerte… qué? ¿Eso está en la Magna Grecia?</p>
+      </div>
+      <div class="bubble bubble-right">
+        <p class="speaker">🧑 Tú</p>
+        <p>Más o menos. Oye, ¿los dioses griegos realmente existen o son metáforas?</p>
+      </div>
+      <div class="bubble bubble-left">
+        <p class="speaker">🧔 Demócrito</p>
+        <p><em>(mirando al cielo nerviosamente)</em> Baja la voz. Que te escuche Apolo y ya verás.</p>
+      </div>
+    </div>
+
+    <div class="scroll-box" data-icon="⚡">
+      <h4>Los Dioses Griegos · Breve guía de supervivencia</h4>
+      <ul>
+        <li><strong>Zeus:</strong> rey del Olimpo. Rayo. No le lleves la contraria.</li>
+        <li><strong>Atenea:</strong> sabiduría y estrategia. Protectora de Atenas.</li>
+        <li><strong>Apolo:</strong> sol, música, profecía. Su oráculo en <span class="g" data-def="Santuario sagrado de Apolo. La sacerdotisa (pitia) transmitía mensajes divinos en forma de frases ambiguas que los sacerdotes interpretaban.">Delfos</span> respondía (vagamente) a todas las preguntas importantes.</li>
+        <li><strong>Ares:</strong> guerra. Malhumorado.</li>
+        <li><strong>Poseidón:</strong> mar y terremotos. Muy relevante en una civilización marítima.</li>
+        <li><strong>Hermes:</strong> mensajero, comercio y, curiosamente, también guía de los muertos al más allá.</li>
+        <li><strong>Dioniso:</strong> vino y teatro. Sus fiestas eran el origen de las representaciones teatrales.</li>
+      </ul>
+    </div>
+
+    <p class="narrative">
+      Después de la Asamblea, Demócrito te lleva al teatro de Dioniso, excavado en la ladera sur de la Acrópolis. Se representa una tragedia de Sófocles. Los actores llevan máscaras enormes y coturnos (zapatos con plataforma elevada) para que los vean desde las filas de atrás. No hay micrófono, pero la acústica es perfecta.
+    </p>
+
+    <div class="alert-funny">
+      🎭 <strong>Curiosidad:</strong> todos los actores eran hombres. Los papeles femeninos también los representaban hombres. La cultura griega: impresionante en muchas cosas, con sus limitaciones en otras.
+    </div>
+
+    <p class="narrative">
+      Cuando la obra termina, Demócrito te lleva a ver los órdenes arquitectónicos del Partenón. Te explica la diferencia entre el capitel <span class="g" data-def="El más sencillo. Sin decoración en el capitel. Columna robusta. Ejemplos: Partenón, templos de la Magna Grecia.">dórico</span>, el <span class="g" data-def="Capitel con volutas (espirales). Más elegante y esbelto. Muy usado en Asia Menor.">jónico</span> y el <span class="g" data-def="El más decorado. Capitel con hojas de acanto. Desarrollado principalmente en el período helenístico.">corintio</span> con la misma pasión con que alguien hoy explicaría diferencias entre teléfonos. Cuando ya llevas dos horas mirando columnas, el globo —que ha aparecido misteriosamente en tu mochila— empieza a vibrar.
+    </p>
+    <p class="narrative">
+      Encuentras un ostracon en el suelo. Alguien ha grabado en él unas letras griegas que no entiendes. Te lo guardas.
+    </p>
+    <div class="alert-funny">
+      🏺 <strong>Objeto recogido:</strong> un ostracon ateniense. Puede que tenga el nombre de alguien desterrado. Mejor no investigar.
+    </div>
+
+    <button class="btn-collect" id="collect0" onclick="collectItem(0, this)">🏺 Guardar el ostracon en el inventario</button>
+
+    <p class="narrative">
+      El globo brilla. Te agarra. Demócrito agita la mano sin inmutarse demasiado, como si los viajeros del tiempo fueran algo normal en el ágora.
+    </p>
+
+    <div class="teleport-box">
+      <span class="t-icon">🌪️</span>
+      <p>
+        <strong>DESTINO: ESPARTA.</strong><br><br>
+        El ágora desaparece. El sol de Atenas se apaga. Cuando el mundo vuelve a materializarse, el aire es más seco, más serio, y alguien está gritando órdenes a voz en cuello.<br><br>
+        Huele a hierro y a cuero. Esto no pinta bien.
+      </p>
+    </div>
+
+    <div class="ch-nav">
+      <button class="btn-nav btn-next-athens" onclick="goTo('ch2')">🛡️ Ir a Esparta →</button>
+    </div>
+  </div>
+</section>
+
+
+<!-- ============================================================
+     CAPÍTULO 2 — ESPARTA
+     ============================================================ -->
+<section id="ch2" class="chapter ch-sparta">
+  <div class="ch-header">
+    <span class="ch-icon">🛡️</span>
+    <p class="ch-number">Capítulo II</p>
+    <h2 class="ch-title">El Agoge No Mola</h2>
+    <p class="ch-subtitle">Esparta, Lacedemonia · Peloponeso · Siglo V a.e.c.</p>
+  </div>
+
+  <div class="ch-content">
+    <div class="map-display">
+      🏔️ · ⚔️ · 🔴 · ⚔️ · 🏔️
+      <p>Lacedemonia · Peloponeso · Esparta</p>
+    </div>
+
+    <p class="narrative">
+      Atenas era caótica pero acogedora. Esto es otra cosa.
+    </p>
+    <p class="narrative">
+      Apareces en un campo abierto donde varios adolescentes —de tu edad más o menos— corren en formación mientras un hombre con expresión de haber masticado granito les grita instrucciones. Nadie lleva ropa cómoda. Nadie sonríe. Hay escudos apoyados en la valla y lanzas clavadas en la tierra a intervalos regulares. Una cabra te mira con pena.
+    </p>
+    <p class="narrative">
+      El instructor se gira hacia ti. Su ojo derecho hace algo inquietante que podría ser una ceja levantada o podría ser una amenaza.
+    </p>
+
+    <div class="dialogue-block">
+      <div class="bubble bubble-left">
+        <p class="speaker">💪 Arquidamo, instructor del agoge</p>
+        <p>¿Quién eres tú? ¿Un <span class="g" data-def="Habitantes libres de Esparta sin derechos de ciudadanía. Se dedicaban al comercio y la artesanía. Pagaban tributos a los espartanos.">perioico</span> nuevo? Pareces blando.</p>
+      </div>
+      <div class="bubble bubble-right">
+        <p class="speaker">🧑 Tú</p>
+        <p>Vengo de… lejos. ¿Qué están haciendo exactamente?</p>
+      </div>
+      <div class="bubble bubble-left">
+        <p class="speaker">💪 Arquidamo</p>
+        <p>El <span class="g" data-def="Sistema de educación y entrenamiento militar espartano. Los ciudadanos ingresaban en él a los 7 años y permanecían hasta los 30. El Estado los educaba directamente.">agoge</span>. Entrenamiento. El Estado de Esparta educa a sus ciudadanos desde los 7 años. A los 14 entran en la fase más intensa. Si sobreviven, son espartanos. Si no… en fin.</p>
+      </div>
+      <div class="bubble bubble-right">
+        <p class="speaker">🧑 Tú</p>
+        <p>¿Y si no quieres ser soldado? ¿Y si prefieres, qué sé yo, ser filósofo? ¿O actor?</p>
+      </div>
+      <div class="bubble bubble-left">
+        <p class="speaker">💪 Arquidamo</p>
+        <p><em>(pausa larga)</em><br>¿Actor.</p>
+      </div>
+      <div class="bubble bubble-right">
+        <p class="speaker">🧑 Tú</p>
+        <p>Olvidadlo.</p>
+      </div>
+    </div>
+
+    <div class="scroll-box" data-icon="⚔️">
+      <h4>El Sistema Político de Esparta · Oligarquía</h4>
+      <ul>
+        <li><strong>Diarquía:</strong> dos reyes gobernaban simultáneamente. Tenían función religiosa y militar, pero con poder limitado.</li>
+        <li><strong><span class="g" data-def="Consejo de Ancianos espartano. 28 miembros mayores de 60 años, elegidos de por vida, más los dos reyes. Controlaba realmente el poder.">Gerusía</span>:</strong> consejo de 28 ancianos (más los 2 reyes). Cargo vitalicio. Podían veto a cualquier decisión.</li>
+        <li><strong>Éforos:</strong> cinco ciudadanos elegidos anualmente por la asamblea. Vigilaban a los reyes y controlaban el orden interno. Tenían un poder enorme.</li>
+        <li><strong>Apella (Asamblea):</strong> todos los ciudadanos varones. Pero ojo: solo podían votar sí o no. Sin debates. Sin propuestas propias.</li>
+      </ul>
+    </div>
+
+    <div class="alert-danger">
+      🔴 <strong>Diferencia clave con Atenas:</strong> En Atenas cualquier ciudadano podía hablar en la Asamblea y proponer lo que quisiera. En Esparta la Asamblea solo aplaudía o abucheaba. El poder real estaba en la Gerusía y los éforos.
+    </div>
+
+    <p class="narrative">
+      Arquidamo, sorprendentemente, te invita a comer con el grupo. Dices sí antes de saber lo que hay.
+    </p>
+
+    <div class="dialogue-block">
+      <div class="bubble bubble-right">
+        <p class="speaker">🧑 Tú</p>
+        <p>¿Esto es… negro? El caldo es literalmente negro.</p>
+      </div>
+      <div class="bubble bubble-left">
+        <p class="speaker">💪 Arquidamo</p>
+        <p>El <em>melas zomos</em>. Caldo negro. Sangre de cerdo, vinagre y sal. El mejor alimento del soldado.</p>
+      </div>
+      <div class="bubble bubble-right">
+        <p class="speaker">🧑 Tú</p>
+        <p>Un rey de Macedonia visitó Esparta una vez y probó esto, ¿verdad? Y dijo que entendía por qué los espartanos no tenían miedo a la muerte.</p>
+      </div>
+      <div class="bubble bubble-left">
+        <p class="speaker">💪 Arquidamo</p>
+        <p><em>(por primera vez, algo parecido a una sonrisa)</em> Eso es exactamente lo que dijo.</p>
+      </div>
+    </div>
+
+    <div class="scroll-box" data-icon="🏘️">
+      <h4>La Sociedad Espartana · Tres grupos</h4>
+      <ul>
+        <li><strong>Espartanos (Spartiatas):</strong> ciudadanos plenos. Minoría. Solo ellos participan en política y van al ejército. No podían comerciar ni trabajar en artesanía.</li>
+        <li><strong>Periecos:</strong> libres, pero sin derechos políticos. Artesanos y comerciantes. Pagaban tributos.</li>
+        <li><strong><span class="g" data-def="Esclavos del Estado espartano. Trabajaban las tierras (kleroi) para los espartanos. Podían ser ejecutados durante la krypteia (cacería ritual) sin consecuencias legales.">Ilotas</span>:</strong> esclavos del Estado. Los más numerosos. Trabajaban las tierras. Vivían en condiciones durísimas y se rebelaban periódicamente.</li>
+      </ul>
+    </div>
+
+    <div class="alert-danger">
+      🔴 <strong>Krypteia:</strong> una vez al año, los jóvenes espartanos salían a cazar ilotas en la oscuridad. Era un ritual de paso. Que esto existiera en la misma civilización griega que inventó la filosofía y el teatro dice mucho sobre la complejidad de la historia.
+    </div>
+
+    <p class="narrative">
+      Por la tarde, uno de los jóvenes del agoge —Leónidas, cómo no— te explica orgulloso que Esparta nunca necesitó murallas porque sus ciudadanos son la mejor muralla. Te lo dice mientras hace sentadillas. Lleva haciéndolas veinte minutos. Sin parar.
+    </p>
+
+    <div class="dialogue-block">
+      <div class="bubble bubble-right">
+        <p class="speaker">🧑 Tú</p>
+        <p>¿No extrañas tener una familia? ¿Vivir en casa?</p>
+      </div>
+      <div class="bubble bubble-left">
+        <p class="speaker">⚔️ Leónidas, joven espartano</p>
+        <p>La polis es mi familia. El Estado es mi padre.</p>
+      </div>
+      <div class="bubble bubble-right">
+        <p class="speaker">🧑 Tú</p>
+        <p>…eso es muy inquietante.</p>
+      </div>
+      <div class="bubble bubble-left">
+        <p class="speaker">⚔️ Leónidas</p>
+        <p>Probablemente. Pero nadie nos invade.</p>
+      </div>
+    </div>
+
+    <p class="narrative">
+      El globo vibra. Antes de irte, encuentras un pequeño escudo decorativo tirado en el suelo del cuartel. Lo recoges.
+    </p>
+
+    <button class="btn-collect" id="collect1" onclick="collectItem(1, this)">🛡️ Guardar el escudo espartano en el inventario</button>
+
+    <div class="teleport-box">
+      <span class="t-icon">🌪️</span>
+      <p>
+        <strong>DESTINO: ROMA.</strong><br><br>
+        Esparta se disuelve. El caldo negro todavía te sabe en la boca. Cuando el mundo se recompone, el ruido es ensordecedor: gritos, músicas, ruedas de carro sobre adoquines y alguien vendiendo salchichas a voz en cuello.<br><br>
+        Huele a mil personas viviendo juntas. A ciudad. A Imperio.
+      </p>
+    </div>
+
+    <div class="ch-nav">
+      <button class="btn-nav btn-next-sparta" onclick="goTo('ch3')">🏟️ Ir a Roma →</button>
+    </div>
+  </div>
+</section>
+
+
+<!-- ============================================================
+     CAPÍTULO 3 — ROMA IMPERIAL
+     ============================================================ -->
+<section id="ch3" class="chapter ch-rome">
+  <div class="ch-header">
+    <span class="ch-icon">🏟️</span>
+    <p class="ch-number">Capítulo III</p>
+    <h2 class="ch-title">Panem et Circenses</h2>
+    <p class="ch-subtitle">Roma · Siglo I e.c. · Imperio bajo Augusto</p>
+  </div>
+
+  <div class="ch-content">
+    <div class="map-display">
+      🌊 · 🏛️ · 🦅 · 🏟️ · 🦅 · 🏛️ · 🌊
+      <p>Mare Nostrum · El Mediterráneo romano</p>
+    </div>
+
+    <p class="narrative">
+      Apareces en medio del <span class="g" data-def="El Foro Romano: corazón político, religioso y comercial de Roma. De aquí partían todas las vías del Imperio. Su nombre completo era Forum Romanum.">Foro Romano</span>, la plaza que es el centro del mundo conocido. Es decir, del mundo que Roma considera que existe de verdad.
+    </p>
+    <p class="narrative">
+      A tu derecha: el Coliseo, un edificio tan grande que parece imposible que sea obra humana. A tu izquierda: el Circo Máximo, donde caben ciento cincuenta mil personas viendo carreras de cuadrigas. Delante: templos, columnas, arcos de triunfo con relieves que narran victorias militares. En todas partes: gente, ruido, caos perfectamente organizado.
+    </p>
+    <p class="narrative">
+      Un hombre de unos treinta años, con ropa modesta pero limpia y una expresión de quien ha visto cosas, aparece a tu lado.
+    </p>
+
+    <div class="dialogue-block">
+      <div class="bubble bubble-left">
+        <p class="speaker">🧑‍🦯 Félix, liberto romano</p>
+        <p>Forastero. Tienes cara de no haber visto Roma nunca. Yo te explico, que a mí me encanta hablar.</p>
+      </div>
+      <div class="bubble bubble-right">
+        <p class="speaker">🧑 Tú</p>
+        <p>¿Liberto? ¿Eso qué significa?</p>
+      </div>
+      <div class="bubble bubble-left">
+        <p class="speaker">🧑‍🦯 Félix</p>
+        <p>Que fui esclavo y mi amo me liberó. Ahora soy libre, aunque con menos derechos que un ciudadano nacido libre. Mis hijos ya serán ciudadanos plenos. Así funciona Roma: lento pero funciona.</p>
+      </div>
+    </div>
+
+    <div class="scroll-box" data-icon="🏙️">
+      <h4>Roma: Una Ciudad de un Millón de Personas</h4>
+      <ul>
+        <li><strong>Domus:</strong> casa particular de las familias ricas, organizada en torno a un patio central (<span class="g" data-def="Patio central de la domus romana con un estanque para recoger el agua de lluvia.">atrio</span>).</li>
+        <li><strong><span class="g" data-def="Edificio de apartamentos de varias plantas en los barrios populares romanos. Podían tener hasta 6-8 pisos. Frecuentes incendios.">Insulae</span>:</strong> bloques de pisos para el pueblo. Sin agua corriente en los pisos altos. Sin calefacción. Bastante peligrosas.</li>
+        <li><strong>El Foro:</strong> centro administrativo, religioso y comercial. Con templos, la Curia (sede del Senado), la tribuna de los oradores y los archivos.</li>
+        <li><strong>Acueductos:</strong> más de 1.000 km de acueductos llevaban agua a la ciudad. Ingenio romano puro.</li>
+      </ul>
+    </div>
+
+    <p class="narrative">
+      Félix te lleva a ver el trazado de la ciudad. Te explica que todas las ciudades romanas siguen el mismo plano: dos calles principales que se cruzan en ángulo recto, el <span class="g" data-def="Calle principal norte-sur de una ciudad romana.">cardo</span> (norte-sur) y el <span class="g" data-def="Calle principal este-oeste de una ciudad romana. En su cruce con el cardo se situaba el foro.">decumano</span> (este-oeste), y en el cruce, el foro.
+    </p>
+
+    <div class="dialogue-block">
+      <div class="bubble bubble-right">
+        <p class="speaker">🧑 Tú</p>
+        <p>¿Y ese edificio enorme de ahí? ¿El Coliseo?</p>
+      </div>
+      <div class="bubble bubble-left">
+        <p class="speaker">🧑‍🦯 Félix</p>
+        <p>El Anfiteatro Flavio. Caben 50.000 personas. Gladiadores, fieras, reenactments de batallas navales con el foso lleno de agua. El Emperador da espectáculos gratis para tener contento al pueblo.</p>
+      </div>
+      <div class="bubble bubble-right">
+        <p class="speaker">🧑 Tú</p>
+        <p>¿Cómo se llama esa política? ¿Pan y…?</p>
+      </div>
+      <div class="bubble bubble-left">
+        <p class="speaker">🧑‍🦯 Félix</p>
+        <p><em>Panem et circenses.</em> Pan y circo. El poeta Juvenal lo dice mejor que yo: mientras al pueblo le des de comer y espectáculos, no se preocupará de quién gobierna ni cómo.</p>
+      </div>
+    </div>
+
+    <div class="scroll-box" data-icon="🦅">
+      <h4>El Imperio Romano · SPQR</h4>
+      <ul>
+        <li><strong>SPQR:</strong> <em>Senatus Populusque Romanus</em>. El Senado y el pueblo de Roma. Aparece en todos los documentos, monedas y edificios oficiales.</li>
+        <li><strong>El Emperador:</strong> desde Augusto (27 a.e.c.), el Emperador concentra todo el poder: mando militar, legislativo y religioso. El Senado existe, pero con poder muy reducido.</li>
+        <li><strong>Las Provincias:</strong> el Imperio se divide en provincias. Las pacificadas, gestionadas por el Senado; las conflictivas, directamente por el Emperador.</li>
+        <li><strong>Romanización:</strong> los pueblos conquistados adoptan el latín, el derecho romano, el urbanismo y la cultura romana. La integración fue lenta pero profunda.</li>
+      </ul>
+    </div>
+
+    <p class="narrative">
+      Félix te lleva a las <span class="g" data-def="Complejos de baños públicos romanos con piscinas de agua fría, templada y caliente, gimnasio y jardines. Centro social por excelencia.">termas</span>. Son impresionantes: salas enormes, mosaicos en el suelo, agua caliente que viene de quién sabe dónde. Luego, en un recorrido por la ciudad, pasáis por unas letrinas públicas. Félix entra sin pensarlo. Tú le sigues.
+    </p>
+
+    <div class="sep">· · ·</div>
+
+    <div class="xylo-box">
+      <p>Las letrinas romanas son una fila de agujeros sobre un canal de agua corriente. Eso está bien. Lo que está <strong>menos bien</strong> es el objeto que hay al lado: una esponja sujeta a un palo largo sumergida en agua con vinagre.</p>
+      <p style="margin-top:0.8rem;">Félix la coge con total naturalidad, hace lo que tiene que hacer, enjuaga la esponja en el cubo de agua con vinagre y la deja para el siguiente usuario.</p>
+      <p style="margin-top:0.8rem;">Tú te quedas mirando.</p>
+      <p style="margin-top:0.8rem;"><strong>Eso</strong> —ese utensilio higiénico de uso compartido— es el <span class="g" data-def="Del griego xylon (madera) + spongos (esponja). Esponja en un palo usada en las letrinas romanas como papel higiénico compartido. Sí, compartido. El vinagre se consideraba desinfectante suficiente.">xylospongium</span>.</p>
+    </div>
+
+    <div class="dialogue-block">
+      <div class="bubble bubble-right">
+        <p class="speaker">🧑 Tú</p>
+        <p>¿Eso lo usa todo el mundo?</p>
+      </div>
+      <div class="bubble bubble-left">
+        <p class="speaker">🧑‍🦯 Félix</p>
+        <p>Claro. Es cómodo y el vinagre desinfecta. ¿Ustedes qué usan en su tierra?</p>
+      </div>
+      <div class="bubble bubble-right">
+        <p class="speaker">🧑 Tú</p>
+        <p>Papel. Papel individual. De un solo uso. Para cada persona.</p>
+      </div>
+      <div class="bubble bubble-left">
+        <p class="speaker">🧑‍🦯 Félix</p>
+        <p>¡Qué derroche! ¡El Imperio no podría permitírselo!</p>
+      </div>
+    </div>
+
+    <div class="alert-funny">
+      🧽 <strong>Dato real:</strong> El xylospongium existió. Hay referencias escritas en autores romanos. Y sí, era de uso comunitario. La higiene romana era avanzada en muchos aspectos (acueductos, alcantarillado), pero en otros… digamos que tenía margen de mejora.
+    </div>
+
+    <p class="narrative">
+      Antes de que el globo se active de nuevo, consigues hacerte con un <span class="g" data-def="Moneda de plata romana. El nombre viene de que inicialmente valía 10 ases. Era la moneda de uso cotidiano.">denario</span> de plata que alguien ha dejado caer cerca del Foro. Tiene la cara de Augusto grabada. Lo guardas en el bolsillo.
+    </p>
+
+    <button class="btn-collect" id="collect2" onclick="collectItem(2, this)">🪙 Guardar el denario en el inventario</button>
+
+    <div class="teleport-box">
+      <span class="t-icon">🌊</span>
+      <p>
+        <strong>DESTINO: DESCONOCIDO.</strong><br><br>
+        El globo no muestra ninguna ciudad esta vez. Solo azul. Azul mar por todas partes. Y cuando aterrizas, el olor que llega es tan intenso que te hace retroceder un paso.<br><br>
+        Es el olor más horrible que has olido en tu vida. Y has estado en las letrinas romanas.
+      </p>
+    </div>
+
+    <div class="ch-nav">
+      <button class="btn-nav btn-next-rome" onclick="goTo('ch4')">🐚 Ir a la Isla de Lobos →</button>
+    </div>
+  </div>
+</section>
+
+
+<!-- ============================================================
+     CAPÍTULO 4 — ISLA DE LOBOS
+     ============================================================ -->
+<section id="ch4" class="chapter ch-lobos">
+  <div class="ch-header">
+    <span class="ch-icon">🐚</span>
+    <p class="ch-number">Capítulo IV</p>
+    <h2 class="ch-title">El Color de los Emperadores</h2>
+    <p class="ch-subtitle">Planaria (Insula Plana) · Islas Fortunatas · Siglo I e.c.</p>
+  </div>
+
+  <div class="ch-content">
+    <div class="map-display">
+      🌊 · 🏝️ · 🐚 · 🦭 · 🌊
+      <p>Oceanus Atlanticus · Las Islas Fortunadas</p>
+    </div>
+
+    <p class="narrative">
+      La isla es pequeña, plana y rocosa. El viento sopla del norte y arrastra consigo ese olor que ya has notado desde el aire: una mezcla de pescado muy fresco y algo que no es fresco en absoluto. Algo que lleva varios días fermentando bajo el sol atlántico.
+    </p>
+    <p class="narrative">
+      Junto a la costa hay una serie de cubetas de piedra excavadas directamente en la roca volcánica. En ellas hay miles de caracoles marinos apilados, aplastados, en distintas fases de descomposición. Varios trabajadores, con los brazos teñidos de un color violáceo oscuro, revuelven el contenido con palos largos.
+    </p>
+    <p class="narrative">
+      Una mujer de mediana edad, que parece ser la supervisora, te mira sin sorpresa excesiva.
+    </p>
+
+    <div class="dialogue-block">
+      <div class="bubble bubble-left">
+        <p class="speaker">🐚 Lavinia, supervisora del taller</p>
+        <p>Otro curioso. Esta es Planaria —ya sé que los locales la llaman de otra manera— y esto es un taller de <span class="g" data-def="Tinte de color violeta o púrpura extraído de las glándulas de caracoles marinos del género Murex. Extraordinariamente caro: se necesitaban miles de moluscos para teñir una sola toga.">púrpura de múrex</span>. ¿Quieres saber cómo funciona o prefieres alejarte del olor?</p>
+      </div>
+      <div class="bubble bubble-right">
+        <p class="speaker">🧑 Tú</p>
+        <p>Las dos cosas a la vez, si es posible. ¿Planaria? ¿Esto son las Islas Canarias?</p>
+      </div>
+      <div class="bubble bubble-left">
+        <p class="speaker">🐚 Lavinia</p>
+        <p>Los romanos las llamamos las <em>Insulae Fortunatae</em>, las Islas Afortunadas. El geógrafo Plinio el Viejo las menciona. Este islote pequeño, frente a la isla grande del sur, es Planaria. ¿La conoces?</p>
+      </div>
+      <div class="bubble bubble-right">
+        <p class="speaker">🧑 Tú</p>
+        <p>La conozco mucho mejor de lo que crees.</p>
+      </div>
+    </div>
+
+    <div class="scroll-box" data-icon="🔬">
+      <h4>El Proceso de la Púrpura · Cómo se hace el color más caro del mundo</h4>
+      <ul>
+        <li><strong>Captura:</strong> se recogen miles de caracoles <em>Murex brandaris</em> y <em>Hexaplex trunculus</em> de las costas rocosas.</li>
+        <li><strong>Extracción:</strong> se aplasta el molusco o se rompe la concha para acceder a una glándula que contiene un líquido incoloro.</li>
+        <li><strong>Oxidación:</strong> al exponerse al sol y al aire, ese líquido se vuelve verde, luego azul, luego violeta intenso. El proceso lleva días y huele a miles de caracoles muertos.</li>
+        <li><strong>Teñido:</strong> las telas se sumergen en el tinte resultante. El color es permanente y no destiñe con el tiempo.</li>
+        <li><strong>Precio:</strong> para teñir una sola toga hacían falta entre 10.000 y 12.000 caracoles. El precio era astronómico: literalmente valía su peso en plata.</li>
+      </ul>
+    </div>
+
+    <p class="narrative">
+      Lavinia te explica que la púrpura era el color reservado a los emperadores y a los senadores (solo la franja en la toga), y que poseer ropa completamente teñida de púrpura sin ser el Emperador era, legalmente, un problema muy serio.
+    </p>
+
+    <div class="dialogue-block">
+      <div class="bubble bubble-right">
+        <p class="speaker">🧑 Tú</p>
+        <p>¿Y Roma llega hasta aquí? ¿Hasta estas islas en medio del Atlántico?</p>
+      </div>
+      <div class="bubble bubble-left">
+        <p class="speaker">🐚 Lavinia</p>
+        <p>El comercio llega a donde hay negocio. Aquí hay <span class="g" data-def="Salsa de pescado fermentado muy popular en Roma. Se producía macerando tripas y sangre de pescado con sal durante semanas. Era el condimento básico de la cocina romana.">garum</span>, hay púrpura, hay sal. Los comerciantes fenicios llegaban antes que nosotros. El mar no es frontera, es carretera.</p>
+      </div>
+      <div class="bubble bubble-right">
+        <p class="speaker">🧑 Tú</p>
+        <p>¿Y los habitantes locales? ¿Los que ya vivían aquí?</p>
+      </div>
+      <div class="bubble bubble-left">
+        <p class="speaker">🐚 Lavinia</p>
+        <p>Los <em>mauri</em>, algunos llaman a los pueblos de estas costas. Pero en estas islas… las expediciones dicen que estaban despobladas. Solo las lobas marinas.</p>
+      </div>
+      <div class="bubble bubble-right">
+        <p class="speaker">🧑 Tú</p>
+        <p>Las lobas marinas. Por eso luego se llamará… en fin. Ya entiendo.</p>
+      </div>
+    </div>
+
+    <div class="scroll-box" data-icon="🌍">
+      <h4>Roma y las Islas Canarias · Lo que sabemos</h4>
+      <ul>
+        <li>El geógrafo romano <strong>Plinio el Viejo</strong> (siglo I e.c.) describe las Islas Afortunadas con nombres que se corresponden, probablemente, con las Canarias.</li>
+        <li>En <strong>Lobos</strong> (Lanzarote) hay evidencias arqueológicas de un taller de <strong>púrpura de múrex</strong> de época romana: cubetas de piedra, restos de moluscos, fragmentos de cerámica.</li>
+        <li>También se han encontrado restos de producción de <strong>garum</strong> en las islas.</li>
+        <li>Las islas probablemente no tenían población permanente en esta época. Los romanos llegaban en expediciones comerciales temporales.</li>
+      </ul>
+    </div>
+
+    <p class="narrative">
+      Uno de los trabajadores, un chico joven con los brazos completamente morados hasta el codo, te ofrece algo para ayudar con el olor. Lo agarra de un cubo que hay en el rincón.
+    </p>
+    <p class="narrative">
+      Es un palo. Con una esponja en la punta.
+    </p>
+
+    <div class="xylo-box">
+      <p>El trabajador agita el xylospongium en el aire como si fuera un ambientador natural.</p>
+      <p style="margin-top:0.8rem;"><strong>Lavinia, sin levantar la vista:</strong> «No preguntes. Cuando llevas horas entre múrex fermentado, el vinagre huele a flores».</p>
+      <p style="margin-top:0.8rem;">El xylospongium, ya omnipresente en tu aventura romana, vuelve a aparecer. Como un fantasma con esponja.</p>
+      <p style="margin-top:0.8rem;">No lo tocas.</p>
+    </div>
+
+    <p class="narrative">
+      Antes de que el globo se active, Lavinia te ofrece una pequeña ampolla de vidrio con unas gotas del tinte de púrpura ya procesado. «Para que recuerdes», dice. «Y para que sepas que lo que parece el fin del mundo desde Roma es, para quien vive aquí, el centro del suyo».
+    </p>
+    <p class="narrative">
+      Te quedas un momento mirando la ampolla. El líquido es de un violeta oscuro e intenso, casi negro. Cuesta creer que hayan muerto diez mil caracoles para producir esto.
+    </p>
+
+    <button class="btn-collect" id="collect3" onclick="collectItem(3, this)">🫙 Guardar la ampolla de púrpura en el inventario</button>
+
+    <div class="alert-smelly">
+      🐚 <strong>Nota geográfica:</strong> El islote de Lobos está frente a la costa sur de Lanzarote. Hoy es Parque Natural. Los restos del taller romano todavía se pueden visitar, aunque el olor ha mejorado considerablemente en 2.000 años.
+    </div>
+
+    <p class="narrative">
+      El globo brilla con más fuerza que nunca. Las coordenadas que aparecen en el latón son las primeras que reconoces: latitud 28° Norte, longitud 14° Oeste. Lanzarote. El IES San Bartolomé. El presente.
+    </p>
+    <p class="narrative">
+      Cuando agitas el globo para activarlo, algo cae de tu bolsillo y aterriza con un golpe suave en la piedra volcánica. Lo recoges antes de marcharte.
+    </p>
+
+    <div class="xylo-box">
+      <p>Es un xylospongium en miniatura. No sabes cuándo ni cómo ha entrado en tu bolsillo. Probablemente en las letrinas del Foro Romano, en un momento de confusión.</p>
+      <p style="margin-top:0.8rem;">Te lo guardas. Como recuerdo.</p>
+      <p style="margin-top:0.8rem;"><em>No vas a explicar esto a nadie.</em></p>
+    </div>
+
+    <button class="btn-collect" id="collect4" onclick="collectItem(4, this)">🧽 Guardar el xylospongium. (Sí, en serio.)</button>
+
+    <div class="teleport-box">
+      <span class="t-icon">🏠</span>
+      <p>
+        <strong>DESTINO: CASA.</strong><br><br>
+        El mar atlántico, los caracoles y el olor intenso desaparecen. El globo emite un destello azul, verde, dorado. Y cuando el mundo vuelve a solidificarse debajo de tus pies, huele a fregona y a aire acondicionado mal regulado.<br><br>
+        Estás en el IES San Bartolomé.
+      </p>
+    </div>
+
+    <div class="ch-nav">
+      <button class="btn-nav btn-next-lobos" onclick="goTo('ch5')">🏠 Volver al presente →</button>
+    </div>
+  </div>
+</section>
+
+
+<!-- ============================================================
+     CAPÍTULO 5 — EL REGRESO
+     ============================================================ -->
+<section id="ch5" class="chapter ch-return">
+  <div class="ch-header">
+    <span class="ch-icon">🏫</span>
+    <p class="ch-number">Epílogo</p>
+    <h2 class="ch-title">El Departamento de Geografía e Historia</h2>
+    <p class="ch-subtitle">IES San Bartolomé · El mismo día · 10:48 de la mañana</p>
+  </div>
+
+  <div class="ch-content">
+    <p class="narrative">
+      El reloj de la pared del departamento marca las 10:48. Has viajado por al menos dos mil quinientos años de historia en menos de un minuto de tiempo real.
+    </p>
+    <p class="narrative">
+      El globo terráqueo está en su sitio, en la estantería, girando despacio. Como si nada. No brilla. No vibra. No hace nada sospechoso. Es, aparentemente, un globo viejo y polvoriento en la estantería de un departamento de instituto.
+    </p>
+    <p class="narrative">
+      Miras tu inventario. En el bolsillo de la chaqueta: un ostracon con letras griegas, un escudo espartano en miniatura, un denario con la cara de Augusto, una ampolla de tinte de púrpura de Lobos, y —inevitablemente— un xylospongium en miniatura.
+    </p>
+    <p class="narrative">
+      Te sientas en la silla del profesor. Fuera, el sol de junio cae vertical sobre el aparcamiento. Dentro, todo está en silencio.
+    </p>
+
+    <div class="sep">· · ·</div>
+
+    <p class="narrative">
+      Piensas en Demócrito explicándote la democracia con la misma pasión con que alguien explicaría su equipo de fútbol. En Arquidamo comiendo caldo negro sin pestañear. En Félix el liberto, que era esclavo y no lo era, y que entendía Roma mejor que nadie porque la había vivido desde abajo y desde arriba. En Lavinia, en una isla que tú conoces como Lobos y que ella llama Planaria, convirtiendo caracoles en el color más caro del mundo.
+    </p>
+    <p class="narrative">
+      Piensas en que la democracia ateniense era imperfecta —excluía a las mujeres, a los esclavos, a los extranjeros— pero que era, también, el primer intento serio de que la gente común decidiera cómo vivir. Piensas en que el sistema espartano era duro hasta lo inhumano, pero que funcionaba para lo que Esparta necesitaba ser. Piensas en que Roma construyó el mayor Imperio que el mundo occidental ha conocido, y que lo hizo sobre esclavos y espectáculos gratuitos y acueductos maravillosos y también sobre una esponja en un palo que todo el mundo compartía.
+    </p>
+    <p class="narrative">
+      La historia no es sencilla. Nunca lo ha sido.
+    </p>
+
+    <div class="final-card">
+      <h3>📜 Una nota que aparece en la mesa</h3>
+      <p>
+        (Está escrita en un papel viejo, con letra que reconoces)<br><br>
+        <em>«Si has llegado hasta aquí, ya sabes más de lo que crees.<br>
+        El globo no funciona con cualquiera.<br>
+        El verano es largo. La historia, más.<br>
+        Nos vemos en septiembre.»</em><br><br>
+        — El Departamento de Geografía e Historia
+      </p>
+    </div>
+
+    <div class="scroll-box" data-icon="🎒">
+      <h4>Tu Inventario Final</h4>
+      <ul>
+        <li>🏺 <strong>Ostracon ateniense:</strong> un trozo de cerámica con un nombre. Alguien fue desterrado. O no llegó a serlo.</li>
+        <li>🛡️ <strong>Escudo espartano (miniatura):</strong> sin adornos. Sin un gramo de oro. La función era la forma.</li>
+        <li>🪙 <strong>Denario de Augusto:</strong> primera persona que puso su cara en una moneda como si fuera un dios. Porque para los romanos, lo era.</li>
+        <li>🫙 <strong>Ampolla de púrpura:</strong> diez mil caracoles de Lobos en un frasquito. La ropa más cara de la historia.</li>
+        <li>🧽 <strong>Xylospongium:</strong> sin comentarios. Te lo quedas. Como recuerdo de la higiene compartida del Imperio Romano.</li>
+      </ul>
+    </div>
+
+    <div class="sep">· · ·</div>
+
+    <div class="scroll-box" data-icon="🤔">
+      <h4>Preguntas para el verano (sin nota, sin fecha, sin presión)</h4>
+      <ul>
+        <li>¿Qué diferencia real hay entre la democracia ateniense y la que vivimos hoy?</li>
+        <li>¿Por qué crees que Esparta eligió la oligarquía mientras Atenas desarrollaba la democracia?</li>
+        <li>«Pan y circo»: ¿crees que este mecanismo sigue existiendo hoy de alguna forma?</li>
+        <li>¿Qué te parece que las huellas de Roma lleguen hasta Lobos, a diez minutos en ferry de donde vives?</li>
+        <li>Si pudieras viajar a una de estas tres civilizaciones, ¿a cuál irías y por qué? (Pista: evita las letrinas romanas.)</li>
+      </ul>
+    </div>
+
+    <div class="final-card" style="margin-top:2rem;">
+      <h3>🌍 Fin del viaje</h3>
+      <p>
+        <em>El Globo del Tiempo</em> es una novela de verano basada en los contenidos de Geografía e Historia de 1.º ESO.<br><br>
+        La historia de Grecia y Roma no está guardada solo en los libros. Está en el nombre de tu idioma, en el alfabeto que usas, en la forma en que tu ciudad organiza sus calles, en el concepto de que todos los ciudadanos merecen opinar sobre cómo se gobiernan.<br><br>
+        Y en Lobos. Que tenemos literalmente al lado.<br><br>
+        <strong>Buen verano.</strong>
+      </p>
+    </div>
+
+    <div class="ch-nav">
+      <button class="btn-nav btn-next-return" onclick="goTo('ch0')">🌍 Releer desde el principio</button>
+    </div>
+  </div>
+</section>
+
+
+<!-- ============================================================
+     JAVASCRIPT
+     ============================================================ -->
+<script>
+// --- Stars generation ---
+(function() {
+  const container = document.getElementById('stars-container');
+  for (let i = 0; i < 120; i++) {
+    const star = document.createElement('div');
+    star.className = 'star';
+    const size = Math.random() * 2.5 + 0.5;
+    star.style.cssText = `
+      width: ${size}px;
+      height: ${size}px;
+      top: ${Math.random() * 100}%;
+      left: ${Math.random() * 100}%;
+      --d: ${(Math.random() * 4 + 1).toFixed(1)}s;
+      animation-delay: ${(Math.random() * 3).toFixed(1)}s;
+    `;
+    container.appendChild(star);
+  }
+})();
+
+// --- Chapter state ---
+const chapters = ['ch0','ch1','ch2','ch3','ch4','ch5'];
+let currentChapter = null;
+
+function startReading() {
+  document.getElementById('portada').style.display = 'none';
+  document.getElementById('nav-bar').classList.add('visible');
+  goTo('ch0');
+}
+
+function goTo(id) {
+  // Hide all
+  chapters.forEach(ch => {
+    const el = document.getElementById(ch);
+    if (el) el.classList.remove('active');
+  });
+  // Show target
+  const target = document.getElementById(id);
+  if (target) {
+    target.classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    currentChapter = id;
+    updateNavHighlight();
+  }
+}
+
+function updateNavHighlight() {
+  document.querySelectorAll('.nav-btn').forEach((btn, i) => {
+    btn.classList.toggle('active', `ch${i}` === currentChapter);
+  });
+}
+
+// --- Inventory ---
+const collected = [false, false, false, false, false];
+
+function collectItem(index, btn) {
+  if (collected[index]) return;
+  collected[index] = true;
+  btn.classList.add('done');
+  btn.textContent = '✓ Guardado en el inventario';
+  const invEl = document.getElementById('inv' + index);
+  if (invEl) {
+    invEl.classList.add('collected');
+  }
+}
+
+// --- Keyboard navigation ---
+document.addEventListener('keydown', (e) => {
+  if (currentChapter === null) return;
+  const idx = chapters.indexOf(currentChapter);
+  if (e.key === 'ArrowRight' && idx < chapters.length - 1) goTo(chapters[idx + 1]);
+  if (e.key === 'ArrowLeft' && idx > 0) goTo(chapters[idx - 1]);
+});
+</script>
+</body>
+</html>
